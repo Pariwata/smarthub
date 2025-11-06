@@ -134,8 +134,8 @@ The Select component consists of:
 - User can select multiple options
 - Checkboxes displayed for each option
 - Dropdown remains open after selection
-- "Done" button to close dropdown
-- Selected count badge in trigger
+- Closes when clicking outside dropdown or pressing Escape
+- Selected count badge in trigger (e.g., "3 selected")
 
 #### Searchable Select
 - Search input at top of dropdown

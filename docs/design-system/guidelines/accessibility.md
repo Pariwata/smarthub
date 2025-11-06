@@ -173,6 +173,8 @@ Use for dynamic content updates:
 
 ## Component-Specific Guidelines
 
+> **Note**: These guidelines provide component-specific accessibility requirements. Each component specification document in the `/components` directory includes these requirements for easy reference during implementation.
+
 ### Buttons
 - Use semantic `<button>` element
 - Provide descriptive text labels
