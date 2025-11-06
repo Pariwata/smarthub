@@ -135,7 +135,8 @@ class SmartHubIntegration:
                 page = self.generate_and_create(prompt, property_mapping, model)
                 results.append(page)
             except Exception as e:
-                print(f"Error processing prompt '{prompt[:50]}...': {str(e)}")
+                import sys
+                print(f"Error processing prompt '{prompt[:50]}...': {str(e)}", file=sys.stderr)
                 results.append({"error": str(e), "prompt": prompt})
         
         return results
@@ -220,7 +221,8 @@ class SmartHubIntegration:
                 )
                 results.append(updated_page)
             except Exception as e:
-                print(f"Error updating page {page.get('id')}: {str(e)}")
+                import sys
+                print(f"Error updating page {page.get('id')}: {str(e)}", file=sys.stderr)
                 results.append({"error": str(e), "page_id": page.get("id")})
         
         return results
