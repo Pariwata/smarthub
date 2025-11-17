@@ -1,0 +1,625 @@
+// Legal Compliance Tracking System - Database Schema
+// Based on Archer IRM Structure
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// REGULATORY LIBRARY MODULE
+// ============================================
+
+enum RegulationType {
+  LAW                    // กฎหมาย
+  REGULATION            // กฎระเบียบ
+  STANDARD              // มาตรฐาน
+  GUIDELINE             // แนวทาง
+  POLICY                // นโยบาย
+  CIRCULAR              // ประกาศ/หนังสือเวียน
+  DIRECTIVE             // คำสั่ง
+}
+
+enum JurisdictionLevel {
+  INTERNATIONAL         // ระดับสากล
+  NATIONAL             // ระดับประเทศ
+  REGIONAL             // ระดับภูมิภาค
+  LOCAL                // ระดับท้องถิ่น
+  INDUSTRY             // ระดับอุตสาหกรรม
+}
+
+model ComplianceFramework {
+  id                    String                @id @default(cuid())
+  code                  String                @unique // e.g., GDPR, PDPA, SOC2
+  name                  String
+  nameLocal             String?               // ชื่อภาษาท้องถิ่น
+  description           String?
+  category              String                // e.g., Data Privacy, Financial, Healthcare
+  jurisdiction          JurisdictionLevel
+  isActive              Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  regulations           RegulatoryLibrary[]
+  audits                Audit[]
+
+  @@map("compliance_frameworks")
+}
+
+model RegulatoryLibrary {
+  id                    String                @id @default(cuid())
+  frameworkId           String?
+  framework             ComplianceFramework?  @relation(fields: [frameworkId], references: [id], onDelete: SetNull)
+
+  // Regulation Details
+  regulationType        RegulationType
+  code                  String                @unique // e.g., PDPA-2019-SEC-25
+  title                 String
+  titleLocal            String?               // ชื่อภาษาท้องถิ่น
+  description           String?
+  fullText              String?               // Full text of regulation
+
+  // Legal Information
+  issuingAuthority      String                // หน่วยงานที่ออก
+  jurisdiction          JurisdictionLevel
+
+  // Dates
+  enactmentDate         DateTime?             // วันที่ประกาศใช้
+  effectiveDate         DateTime              // วันที่มีผลบังคับใช้
+  lastAmendmentDate     DateTime?
+  expirationDate        DateTime?
+
+  // Version Control
+  version               String                @default("1.0")
+  supersedes            String?               // ID of regulation this replaces
+
+  // Status
+  status                String                @default("ACTIVE") // DRAFT, ACTIVE, AMENDED, REPEALED
+
+  // Metadata
+  tags                  String[]              // For categorization
+  sourceUrl             String?
+  attachmentUrl         String?
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  obligations           ComplianceObligation[]
+  changeHistory         RegulatoryChange[]
+
+  @@index([frameworkId])
+  @@index([regulationType])
+  @@index([status])
+  @@index([effectiveDate])
+  @@map("regulatory_library")
+}
+
+model RegulatoryChange {
+  id                    String                @id @default(cuid())
+  regulationId          String
+  regulation            RegulatoryLibrary     @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+
+  changeType            String                // AMENDMENT, REPEAL, NEW_CLAUSE, MODIFICATION
+  changeDate            DateTime
+  effectiveDate         DateTime
+  description           String
+  impactAssessment      String?               // ผลกระทบจากการเปลี่ยนแปลง
+  actionRequired        Boolean               @default(false)
+  notifiedTo            String[]              // List of stakeholders notified
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  @@index([regulationId])
+  @@index([changeDate])
+  @@map("regulatory_changes")
+}
+
+// ============================================
+// COMPLIANCE OBLIGATIONS MODULE
+// ============================================
+
+enum ObligationPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ObligationFrequency {
+  ONE_TIME              // ครั้งเดียว
+  DAILY                 // รายวัน
+  WEEKLY                // รายสัปดาห์
+  MONTHLY               // รายเดือน
+  QUARTERLY             // รายไตรมาส
+  SEMI_ANNUALLY         // ราย 6 เดือน
+  ANNUALLY              // รายปี
+  CONTINUOUS            // ต่อเนื่อง
+  EVENT_DRIVEN          // ตามเหตุการณ์
+}
+
+model ComplianceObligation {
+  id                    String                @id @default(cuid())
+  regulationId          String
+  regulation            RegulatoryLibrary     @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+
+  // Obligation Details
+  obligationCode        String                @unique
+  title                 String
+  titleLocal            String?
+  description           String
+  requirementText       String                // ข้อความของข้อกำหนด
+
+  // Classification
+  category              String                // e.g., Reporting, Disclosure, Process, Technical
+  subcategory           String?
+  priority              ObligationPriority    @default(MEDIUM)
+
+  // Responsibility
+  responsibleDepartment String?               // แผนกที่รับผิดชอบ
+  responsiblePerson     String?               // ผู้รับผิดชอบ
+
+  // Timing
+  frequency             ObligationFrequency
+  deadlineType          String?               // FIXED_DATE, RELATIVE, CONTINUOUS
+  fixedDeadline         DateTime?
+  relativeDeadlineDays  Int?                  // วันที่กำหนดสัมพัทธ์
+
+  // Penalty Information
+  penaltyForNonCompliance String?             // โทษหากไม่ปฏิบัติตาม
+  penaltyAmount         Decimal?              @db.Decimal(15, 2)
+
+  // Status
+  isActive              Boolean               @default(true)
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  controls              ComplianceControl[]
+  actions               ComplianceAction[]
+  statusTracking        ComplianceStatus[]
+  evidences             Evidence[]
+  risks                 RiskAssessment[]
+
+  @@index([regulationId])
+  @@index([priority])
+  @@index([frequency])
+  @@map("compliance_obligations")
+}
+
+// ============================================
+// CONTROLS MODULE
+// ============================================
+
+enum ControlType {
+  PREVENTIVE            // ป้องกัน
+  DETECTIVE             // ตรวจจับ
+  CORRECTIVE            // แก้ไข
+  DIRECTIVE             // กำกับ
+  COMPENSATING          // ทดแทน
+}
+
+enum ControlNature {
+  MANUAL                // ดำเนินการด้วยมือ
+  AUTOMATED             // อัตโนมัติ
+  HYBRID                // ผสม
+}
+
+model ComplianceControl {
+  id                    String                @id @default(cuid())
+  obligationId          String
+  obligation            ComplianceObligation  @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+
+  // Control Details
+  controlCode           String                @unique
+  title                 String
+  description           String
+  controlType           ControlType
+  controlNature         ControlNature
+
+  // Implementation
+  implementationDetails String?
+  owner                 String?               // ผู้รับผิดชอบ control
+
+  // Effectiveness
+  isEffective           Boolean               @default(true)
+  lastTestedDate        DateTime?
+  testFrequency         String?               // MONTHLY, QUARTERLY, ANNUALLY
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  actions               ComplianceAction[]
+  testResults           ControlTestResult[]
+
+  @@index([obligationId])
+  @@map("compliance_controls")
+}
+
+model ControlTestResult {
+  id                    String                @id @default(cuid())
+  controlId             String
+  control               ComplianceControl     @relation(fields: [controlId], references: [id], onDelete: Cascade)
+
+  testDate              DateTime
+  testedBy              String
+  testMethod            String?
+  isPassed              Boolean
+  findings              String?
+  recommendations       String?
+
+  createdAt             DateTime              @default(now())
+
+  @@index([controlId])
+  @@index([testDate])
+  @@map("control_test_results")
+}
+
+// ============================================
+// ACTIONS MODULE
+// ============================================
+
+enum ActionStatus {
+  NOT_STARTED           // ยังไม่เริ่ม
+  IN_PROGRESS           // กำลังดำเนินการ
+  PENDING_REVIEW        // รอการตรวจสอบ
+  COMPLETED             // เสร็จสิ้น
+  OVERDUE               // เกินกำหนด
+  CANCELLED             // ยกเลิก
+}
+
+model ComplianceAction {
+  id                    String                @id @default(cuid())
+  obligationId          String
+  obligation            ComplianceObligation  @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+
+  controlId             String?
+  control               ComplianceControl?    @relation(fields: [controlId], references: [id], onDelete: SetNull)
+
+  // Action Details
+  actionCode            String                @unique
+  title                 String
+  description           String
+  actionType            String                // IMPLEMENT, REVIEW, REPORT, MONITOR, REMEDIATE
+
+  // Assignment
+  assignedTo            String?               // ผู้รับผิดชอบ
+  assignedDepartment    String?
+
+  // Timing
+  plannedStartDate      DateTime?
+  plannedEndDate        DateTime?
+  actualStartDate       DateTime?
+  actualEndDate         DateTime?
+  dueDate               DateTime
+
+  // Status
+  status                ActionStatus          @default(NOT_STARTED)
+  completionPercentage  Int                   @default(0)
+
+  // Resources
+  estimatedHours        Decimal?              @db.Decimal(10, 2)
+  actualHours           Decimal?              @db.Decimal(10, 2)
+  estimatedCost         Decimal?              @db.Decimal(15, 2)
+  actualCost            Decimal?              @db.Decimal(15, 2)
+
+  // Notes
+  notes                 String?
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  updates               ActionUpdate[]
+  evidences             Evidence[]
+
+  @@index([obligationId])
+  @@index([controlId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("compliance_actions")
+}
+
+model ActionUpdate {
+  id                    String                @id @default(cuid())
+  actionId              String
+  action                ComplianceAction      @relation(fields: [actionId], references: [id], onDelete: Cascade)
+
+  updateDate            DateTime              @default(now())
+  updatedBy             String
+  statusBefore          ActionStatus
+  statusAfter           ActionStatus
+  notes                 String?
+
+  @@index([actionId])
+  @@map("action_updates")
+}
+
+// ============================================
+// STATUS TRACKING MODULE
+// ============================================
+
+enum ComplianceStatusValue {
+  COMPLIANT             // ปฏิบัติตามแล้ว
+  PARTIALLY_COMPLIANT   // ปฏิบัติตามบางส่วน
+  NON_COMPLIANT         // ไม่ปฏิบัติตาม
+  NOT_APPLICABLE        // ไม่เกี่ยวข้อง
+  IN_PROGRESS           // กำลังดำเนินการ
+  UNDER_REVIEW          // อยู่ระหว่างตรวจสอบ
+}
+
+model ComplianceStatus {
+  id                    String                @id @default(cuid())
+  obligationId          String
+  obligation            ComplianceObligation  @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+
+  // Status Information
+  status                ComplianceStatusValue
+  assessmentDate        DateTime              @default(now())
+  assessedBy            String?
+
+  // Details
+  complianceScore       Int?                  // 0-100
+  findings              String?
+  gaps                  String?               // ช่องว่างที่ต้องแก้ไข
+  recommendations       String?
+
+  // Next Review
+  nextReviewDate        DateTime?
+  reviewFrequency       String?
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  @@index([obligationId])
+  @@index([status])
+  @@index([assessmentDate])
+  @@map("compliance_status")
+}
+
+// ============================================
+// AUDIT MODULE
+// ============================================
+
+enum AuditStatus {
+  PLANNED               // วางแผนแล้ว
+  IN_PROGRESS           // กำลังตรวจสอบ
+  COMPLETED             // เสร็จสิ้น
+  CANCELLED             // ยกเลิก
+}
+
+enum AuditType {
+  INTERNAL              // ตรวจสอบภายใน
+  EXTERNAL              // ตรวจสอบภายนอก
+  REGULATORY            // ตรวจสอบจากหน่วยงานกำกับ
+  CERTIFICATION         // การรับรอง
+}
+
+model Audit {
+  id                    String                @id @default(cuid())
+  frameworkId           String?
+  framework             ComplianceFramework?  @relation(fields: [frameworkId], references: [id], onDelete: SetNull)
+
+  // Audit Details
+  auditCode             String                @unique
+  title                 String
+  description           String?
+  auditType             AuditType
+  scope                 String                // ขอบเขตการตรวจสอบ
+
+  // Auditor Information
+  auditorName           String
+  auditorOrganization   String?
+  leadAuditor           String?
+
+  // Schedule
+  plannedStartDate      DateTime
+  plannedEndDate        DateTime
+  actualStartDate       DateTime?
+  actualEndDate         DateTime?
+
+  // Status
+  status                AuditStatus           @default(PLANNED)
+
+  // Results
+  overallRating         String?               // PASS, FAIL, CONDITIONAL
+  findingsCount         Int                   @default(0)
+  criticalFindings      Int                   @default(0)
+  highFindings          Int                   @default(0)
+  mediumFindings        Int                   @default(0)
+  lowFindings           Int                   @default(0)
+
+  // Documentation
+  reportUrl             String?
+  certificationUrl      String?
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  findings              AuditFinding[]
+
+  @@index([frameworkId])
+  @@index([status])
+  @@index([plannedStartDate])
+  @@map("audits")
+}
+
+enum FindingSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  OBSERVATION
+}
+
+enum FindingStatus {
+  OPEN                  // เปิด
+  IN_REMEDIATION        // กำลังแก้ไข
+  PENDING_VERIFICATION  // รอตรวจสอบ
+  CLOSED                // ปิด
+  ACCEPTED_RISK         // ยอมรับความเสี่ยง
+}
+
+model AuditFinding {
+  id                    String                @id @default(cuid())
+  auditId               String
+  audit                 Audit                 @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  // Finding Details
+  findingCode           String                @unique
+  title                 String
+  description           String
+  severity              FindingSeverity
+  category              String?
+
+  // Impact
+  impact                String?
+  riskLevel             String?
+
+  // Remediation
+  recommendation        String?
+  remediationPlan       String?
+  responsiblePerson     String?
+  dueDate               DateTime?
+
+  // Status
+  status                FindingStatus         @default(OPEN)
+
+  // Closure
+  closureDate           DateTime?
+  closureNotes          String?
+  verifiedBy            String?
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  evidences             Evidence[]
+
+  @@index([auditId])
+  @@index([severity])
+  @@index([status])
+  @@map("audit_findings")
+}
+
+// ============================================
+// EVIDENCE MODULE
+// ============================================
+
+enum EvidenceType {
+  DOCUMENT              // เอกสาร
+  SCREENSHOT            // ภาพหน้าจอ
+  LOG_FILE              // ไฟล์ log
+  CERTIFICATE           // ใบรับรอง
+  PHOTO                 // ภาพถ่าย
+  VIDEO                 // วิดีโอ
+  EMAIL                 // อีเมล
+  REPORT                // รายงาน
+  OTHER                 // อื่นๆ
+}
+
+model Evidence {
+  id                    String                @id @default(cuid())
+
+  obligationId          String?
+  obligation            ComplianceObligation? @relation(fields: [obligationId], references: [id], onDelete: SetNull)
+
+  actionId              String?
+  action                ComplianceAction?     @relation(fields: [actionId], references: [id], onDelete: SetNull)
+
+  findingId             String?
+  finding               AuditFinding?         @relation(fields: [findingId], references: [id], onDelete: SetNull)
+
+  // Evidence Details
+  title                 String
+  description           String?
+  evidenceType          EvidenceType
+
+  // File Information
+  fileName              String?
+  fileUrl               String?
+  fileSize              Int?
+  mimeType              String?
+
+  // Metadata
+  collectedBy           String?
+  collectedDate         DateTime              @default(now())
+  expirationDate        DateTime?
+
+  // Verification
+  isVerified            Boolean               @default(false)
+  verifiedBy            String?
+  verificationDate      DateTime?
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  @@index([obligationId])
+  @@index([actionId])
+  @@index([findingId])
+  @@map("evidences")
+}
+
+// ============================================
+// RISK ASSESSMENT MODULE
+// ============================================
+
+enum RiskLikelihood {
+  RARE                  // หายาก
+  UNLIKELY              // ไม่น่าจะเกิด
+  POSSIBLE              // เป็นไปได้
+  LIKELY                // น่าจะเกิด
+  ALMOST_CERTAIN        // เกือบแน่นอน
+}
+
+enum RiskImpact {
+  INSIGNIFICANT         // เล็กน้อย
+  MINOR                 // น้อย
+  MODERATE              // ปานกลาง
+  MAJOR                 // สูง
+  SEVERE                // รุนแรง
+}
+
+model RiskAssessment {
+  id                    String                @id @default(cuid())
+  obligationId          String
+  obligation            ComplianceObligation  @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+
+  // Risk Details
+  riskTitle             String
+  riskDescription       String
+  category              String?               // OPERATIONAL, FINANCIAL, REPUTATIONAL, LEGAL
+
+  // Assessment
+  likelihood            RiskLikelihood
+  impact                RiskImpact
+  inherentRiskScore     Int                   // คะแนนความเสี่ยงโดยธรรมชาติ
+  residualRiskScore     Int                   // คะแนนความเสี่ยงคงเหลือ
+
+  // Treatment
+  riskResponse          String?               // ACCEPT, MITIGATE, TRANSFER, AVOID
+  mitigationPlan        String?
+  mitigationOwner       String?
+
+  // Status
+  assessmentDate        DateTime              @default(now())
+  assessedBy            String?
+  nextReviewDate        DateTime?
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  @@index([obligationId])
+  @@index([likelihood])
+  @@index([impact])
+  @@map("risk_assessments")
+}
