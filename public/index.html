@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Risk Assessment System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background: #e0e0e0;
+        }
+
+        .tab.active {
+            background: white;
+            border-bottom: 3px solid #667eea;
+            font-weight: bold;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Risk Matrix Styles */
+        .risk-matrix {
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .matrix-table th,
+        .matrix-table td {
+            padding: 15px;
+            text-align: center;
+            border: 2px solid #ddd;
+            font-weight: 500;
+        }
+
+        .matrix-table th {
+            background: #2a5298;
+            color: white;
+            font-weight: bold;
+        }
+
+        .risk-low {
+            background: #4caf50;
+            color: white;
+        }
+
+        .risk-medium {
+            background: #ffeb3b;
+            color: #333;
+        }
+
+        .risk-quite-high {
+            background: #ff9800;
+            color: white;
+        }
+
+        .risk-high {
+            background: #f44336;
+            color: white;
+        }
+
+        .qrm-excellent {
+            background: #1b5e20;
+            color: white;
+        }
+
+        .qrm-good {
+            background: #4caf50;
+            color: white;
+        }
+
+        .qrm-fair {
+            background: #ffeb3b;
+            color: #333;
+        }
+
+        .qrm-somewhat-weak {
+            background: #ff9800;
+            color: white;
+        }
+
+        .qrm-weak {
+            background: #f44336;
+            color: white;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #da190b;
+        }
+
+        /* Statistics */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .stat-card p {
+            opacity: 0.9;
+        }
+
+        /* Assessment List */
+        .assessment-list {
+            margin: 20px 0;
+        }
+
+        .assessment-item {
+            background: #f9f9f9;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #667eea;
+        }
+
+        .assessment-item h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .assessment-item p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            border: 2px solid #ddd;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏦 ระบบประเมินความเสี่ยงด้าน Compliance</h1>
+            <p>Compliance Risk Assessment System - SmartHub</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('matrix')">Risk Matrix (5x5)</button>
+            <button class="tab" onclick="showTab('assessments')">Risk Assessments</button>
+            <button class="tab" onclick="showTab('statistics')">Dashboard & Statistics</button>
+            <button class="tab" onclick="showTab('create')">Create Assessment</button>
+        </div>
+
+        <div class="content">
+            <!-- Risk Matrix Tab -->
+            <div id="matrix-tab" class="tab-content active">
+                <h2>Risk Matrix (5x5) - Impact × Likelihood</h2>
+
+                <div class="legend">
+                    <h3 style="width: 100%;">Net Risk Levels:</h3>
+                    <div class="legend-item">
+                        <div class="legend-color risk-low"></div>
+                        <span>ต่ำ (Low)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color risk-medium"></div>
+                        <span>ปานกลาง (Medium)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color risk-quite-high"></div>
+                        <span>ค่อนข้างสูง (Quite High)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color risk-high"></div>
+                        <span>สูง (High)</span>
+                    </div>
+                </div>
+
+                <div class="risk-matrix" id="risk-matrix-container">
+                    <div class="loading">Loading risk matrix...</div>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <h3>Quality of Risk Management (QRM) - 5 Levels</h3>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color qrm-excellent"></div>
+                            <span>ดี (Excellent) - Level 5</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color qrm-good"></div>
+                            <span>ค่อนข้างดี (Good) - Level 4</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color qrm-fair"></div>
+                            <span>พอใช้ (Fair) - Level 3</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color qrm-somewhat-weak"></div>
+                            <span>ค่อนข้างอ่อน (Somewhat Weak) - Level 2</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color qrm-weak"></div>
+                            <span>อ่อน (Weak) - Level 1</span>
+                        </div>
+                    </div>
+                    <p style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 5px;">
+                        <strong>Note:</strong> Net Risk = Inherent Risk (from 5x5 matrix) adjusted by QRM level.
+                        Better QRM can reduce the net risk, while weak QRM may increase it.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Assessments List Tab -->
+            <div id="assessments-tab" class="tab-content">
+                <h2>Risk Assessments</h2>
+                <div id="assessments-list">
+                    <div class="loading">Loading assessments...</div>
+                </div>
+            </div>
+
+            <!-- Statistics Tab -->
+            <div id="statistics-tab" class="tab-content">
+                <h2>Dashboard & Statistics</h2>
+                <div id="statistics-container">
+                    <div class="loading">Loading statistics...</div>
+                </div>
+            </div>
+
+            <!-- Create Assessment Tab -->
+            <div id="create-tab" class="tab-content">
+                <h2>Create New Risk Assessment</h2>
+                <form id="assessment-form">
+                    <div class="form-group">
+                        <label>Risk Area *</label>
+                        <select id="riskAreaId" required>
+                            <option value="">Select Risk Area</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Assessment Period * (e.g., 2024-Q1, 2024-H1, 2024-M01)</label>
+                        <input type="text" id="assessmentPeriod" placeholder="2024-Q1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Likelihood Level * (1-5)</label>
+                        <select id="likelihoodLevel" required>
+                            <option value="">Select Likelihood</option>
+                            <option value="1">1 - น้อยมาก (Very Low) ≤2%</option>
+                            <option value="2">2 - น้อย (Low) 2%-5%</option>
+                            <option value="3">3 - ปานกลาง (Medium) 5%-10%</option>
+                            <option value="4">4 - ค่อนข้างสูง (High) 10%-20%</option>
+                            <option value="5">5 - รุนแรงที่สุด (Very High) >20%</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Impact Level * (1-5)</label>
+                        <select id="impactLevel" required>
+                            <option value="">Select Impact</option>
+                            <option value="1">1 - น้อยมาก (Very Low)</option>
+                            <option value="2">2 - น้อย (Low)</option>
+                            <option value="3">3 - ปานกลาง (Medium)</option>
+                            <option value="4">4 - ค่อนข้างสูง (High)</option>
+                            <option value="5">5 - สูงมาก (Very High)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Quality of Risk Management (QRM) * (1-5)</label>
+                        <select id="qrmLevel" required>
+                            <option value="">Select QRM Level</option>
+                            <option value="1">1 - อ่อน (Weak)</option>
+                            <option value="2">2 - ค่อนข้างอ่อน (Somewhat Weak)</option>
+                            <option value="3">3 - พอใช้ (Fair)</option>
+                            <option value="4">4 - ค่อนข้างดี (Good)</option>
+                            <option value="5">5 - ดี (Excellent)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <label style="font-size: 1.1em; margin-bottom: 15px; display: block;">Risk Description Indicators (ลักษณะความเสี่ยง)</label>
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: start; cursor: pointer; font-weight: normal;">
+                                <input type="checkbox" id="hasIncompleteActionPlanForNewRegulation" style="margin-right: 10px; margin-top: 4px; width: auto;">
+                                <span>ยังมี action plan สำหรับกฎเกณฑ์ออกใหม่/เปลี่ยนแปลงที่ยังดำเนินการไม่ครบถ้วน<br>
+                                <small style="color: #666;">(Incomplete action plan for new/changed regulations)</small></span>
+                            </label>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: start; cursor: pointer; font-weight: normal;">
+                                <input type="checkbox" id="hasIncompleteCorrectiveActionPlan" style="margin-right: 10px; margin-top: 4px; width: auto;">
+                                <span>ยังมี Action plan (corrective action plan และ/หรือ Preventive Action Plan) สำหรับประเด็น Non-compliance ที่พบที่ยังดำเนินการไม่แล้วเสร็จ<br>
+                                <small style="color: #666;">(Incomplete corrective/preventive action plans for non-compliance issues)</small></span>
+                            </label>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: start; cursor: pointer; font-weight: normal;">
+                                <input type="checkbox" id="hasNewOrComplexRegulation" style="margin-right: 10px; margin-top: 4px; width: auto;">
+                                <span>มีกฎเกณฑ์ที่เพิ่งออกใหม่ หรือมีความซับซ้อน หรือมีผลกระทบ/ความเสี่ยงสำคัญที่อาจพบการปฏิบัติไม่เป็นไปตามกฎเกณฑ์ที่ธนาคารต้องติดตามดูแลเป็นพิเศษ<br>
+                                <small style="color: #666;">(New/complex regulations requiring special attention)</small></span>
+                            </label>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label style="font-weight: 600; display: block; margin-bottom: 5px;">Other (อื่นๆ)</label>
+                            <textarea id="riskDescriptionOther" placeholder="ระบุลักษณะความเสี่ยงอื่นๆ..." style="width: 100%; min-height: 60px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Likelihood Justification</label>
+                        <textarea id="likelihoodJustification" placeholder="เหตุผลประกอบการประเมินความถี่..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Impact Justification</label>
+                        <textarea id="impactJustification" placeholder="เหตุผลประกอบการประเมินผลกระทบ..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>QRM Justification</label>
+                        <textarea id="qrmJustification" placeholder="เหตุผลประกอบการประเมิน QRM..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Mitigation Actions</label>
+                        <textarea id="mitigationActions" placeholder="มาตรการลดความเสี่ยง..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Assessed By</label>
+                        <input type="text" id="assessedBy" placeholder="ชื่อผู้ประเมิน">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Create Assessment</button>
+                </form>
+                <div id="form-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
