@@ -1,0 +1,43 @@
+{
+  "name": "smarthub-email-manager",
+  "version": "1.0.0",
+  "description": "Smart Email Management System - Check, Categorize, Analyze, and Manage emails intelligently",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest",
+    "lint": "eslint src/",
+    "check-emails": "node src/cli.js check",
+    "analyze-emails": "node src/cli.js analyze",
+    "manage-emails": "node src/cli.js manage"
+  },
+  "keywords": [
+    "email",
+    "management",
+    "categorization",
+    "analysis",
+    "imap",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "imap": "^0.8.19",
+    "mailparser": "^3.6.5",
+    "nodemailer": "^6.9.7",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0",
+    "natural": "^6.10.4",
+    "compromise": "^14.10.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.54.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
