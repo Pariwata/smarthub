@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartHub Email Management</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">📧</span>
+        <h1>SmartHub</h1>
+      </div>
+      <div class="header-actions">
+        <button id="refreshBtn" class="btn btn-secondary" onclick="refreshStatus()">
+          <span>🔄</span> Refresh
+        </button>
+        <div id="connectionStatus" class="status-badge disconnected">
+          Disconnected
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <nav class="nav-menu">
+          <button class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
+            <span>📊</span> Dashboard
+          </button>
+          <button class="nav-item" data-view="inbox" onclick="switchView('inbox')">
+            <span>📥</span> Inbox
+          </button>
+          <button class="nav-item" data-view="categories" onclick="switchView('categories')">
+            <span>🏷️</span> Categories
+          </button>
+          <button class="nav-item" data-view="analysis" onclick="switchView('analysis')">
+            <span>🔍</span> Analysis
+          </button>
+          <button class="nav-item" data-view="urgent" onclick="switchView('urgent')">
+            <span>⚠️</span> Urgent
+            <span id="urgentCount" class="badge hidden">0</span>
+          </button>
+          <button class="nav-item" data-view="suspicious" onclick="switchView('suspicious')">
+            <span>🚨</span> Suspicious
+            <span id="suspiciousCount" class="badge hidden">0</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-section">
+          <h3>Quick Actions</h3>
+          <button class="action-btn" onclick="showFetchModal()">
+            <span>📬</span> Fetch Emails
+          </button>
+          <button class="action-btn" onclick="processEmails('new')">
+            <span>⚡</span> Process New
+          </button>
+          <button class="action-btn" onclick="showProcessModal()">
+            <span>🔄</span> Process Period
+          </button>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Categories</h3>
+          <div id="categoryList" class="category-list">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </aside>
+
+      <!-- Content Area -->
+      <main class="content-area">
+        <!-- Dashboard View -->
+        <div id="dashboardView" class="view active">
+          <h2>Dashboard</h2>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">📧</div>
+              <div class="stat-info">
+                <span class="stat-value" id="totalEmails">0</span>
+                <span class="stat-label">Total Emails</span>
+              </div>
+            </div>
+            <div class="stat-card urgent">
+              <div class="stat-icon">⚠️</div>
+              <div class="stat-info">
+                <span class="stat-value" id="urgentEmails">0</span>
+                <span class="stat-label">Urgent</span>
+              </div>
+            </div>
+            <div class="stat-card warning">
+              <div class="stat-icon">🚨</div>
+              <div class="stat-info">
+                <span class="stat-value" id="suspiciousEmails">0</span>
+                <span class="stat-label">Suspicious</span>
+              </div>
+            </div>
+            <div class="stat-card info">
+              <div class="stat-icon">📋</div>
+              <div class="stat-info">
+                <span class="stat-value" id="actionItems">0</span>
+                <span class="stat-label">Action Items</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="card">
+              <h3>Category Distribution</h3>
+              <div id="categoryChart" class="chart-container">
+                <!-- Chart bars -->
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Priority Distribution</h3>
+              <div id="priorityChart" class="chart-container">
+                <!-- Chart bars -->
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Sentiment Analysis</h3>
+              <div id="sentimentChart" class="chart-container">
+                <!-- Chart bars -->
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Recent Activity</h3>
+              <div id="recentActivity" class="activity-list">
+                <p class="empty-message">No recent activity</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inbox View -->
+        <div id="inboxView" class="view">
+          <div class="view-header">
+            <h2>Inbox</h2>
+            <div class="view-actions">
+              <input type="text" id="searchInput" placeholder="Search emails..." class="search-input" onkeyup="handleSearch(event)">
+              <select id="filterCategory" class="filter-select" onchange="applyFilters()">
+                <option value="">All Categories</option>
+              </select>
+              <select id="filterPriority" class="filter-select" onchange="applyFilters()">
+                <option value="">All Priorities</option>
+                <option value="urgent">Urgent</option>
+                <option value="high">High</option>
+                <option value="normal">Normal</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="emailList" class="email-list">
+            <p class="empty-message">No emails loaded. Click "Fetch Emails" or "Process New" to get started.</p>
+          </div>
+
+          <div id="pagination" class="pagination hidden">
+            <button onclick="prevPage()" id="prevBtn">← Previous</button>
+            <span id="pageInfo">Page 1</span>
+            <button onclick="nextPage()" id="nextBtn">Next →</button>
+          </div>
+        </div>
+
+        <!-- Categories View -->
+        <div id="categoriesView" class="view">
+          <h2>Categories</h2>
+          <div id="categoriesGrid" class="categories-grid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Analysis View -->
+        <div id="analysisView" class="view">
+          <h2>Analysis Results</h2>
+          <div id="analysisContent" class="analysis-content">
+            <p class="empty-message">Process emails to see analysis results.</p>
+          </div>
+        </div>
+
+        <!-- Urgent View -->
+        <div id="urgentView" class="view">
+          <h2>⚠️ Urgent Emails</h2>
+          <div id="urgentList" class="email-list">
+            <p class="empty-message">No urgent emails.</p>
+          </div>
+        </div>
+
+        <!-- Suspicious View -->
+        <div id="suspiciousView" class="view">
+          <h2>🚨 Suspicious Emails</h2>
+          <div id="suspiciousList" class="email-list">
+            <p class="empty-message">No suspicious emails detected.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Email Detail Modal -->
+    <div id="emailModal" class="modal hidden">
+      <div class="modal-content large">
+        <div class="modal-header">
+          <h2 id="emailModalTitle">Email Details</h2>
+          <button class="modal-close" onclick="closeEmailModal()">×</button>
+        </div>
+        <div id="emailModalBody" class="modal-body">
+          <!-- Email content -->
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeEmailModal()">Close</button>
+          <div class="modal-actions">
+            <button class="btn" onclick="emailAction('archive')">📁 Archive</button>
+            <button class="btn" onclick="emailAction('flag')">⭐ Flag</button>
+            <button class="btn btn-danger" onclick="emailAction('delete')">🗑️ Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fetch Modal -->
+    <div id="fetchModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Fetch Emails</h2>
+          <button class="modal-close" onclick="closeFetchModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Fetch Type</label>
+            <select id="fetchType" onchange="toggleFetchOptions()">
+              <option value="new">New/Unseen Emails</option>
+              <option value="recent">Recent (Last N Days)</option>
+              <option value="period">Date Range</option>
+            </select>
+          </div>
+
+          <div id="recentOptions" class="form-group hidden">
+            <label>Number of Days</label>
+            <input type="number" id="fetchDays" value="7" min="1" max="90">
+          </div>
+
+          <div id="periodOptions" class="form-group hidden">
+            <label>Start Date</label>
+            <input type="date" id="fetchStartDate">
+            <label>End Date</label>
+            <input type="date" id="fetchEndDate">
+          </div>
+
+          <div class="form-group">
+            <label>Limit</label>
+            <input type="number" id="fetchLimit" value="50" min="1" max="200">
+          </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="processAfterFetch" checked>
+              Process after fetching (categorize, analyze, manage)
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeFetchModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="executeFetch()">Fetch Emails</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Process Modal -->
+    <div id="processModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Process Emails</h2>
+          <button class="modal-close" onclick="closeProcessModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Process Type</label>
+            <select id="processType">
+              <option value="new">New/Unseen Emails</option>
+              <option value="recent">Recent (Last N Days)</option>
+              <option value="period">Date Range</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Days (for recent)</label>
+            <input type="number" id="processDays" value="7" min="1" max="90">
+          </div>
+
+          <div class="form-group">
+            <label>Start Date (for period)</label>
+            <input type="date" id="processStartDate">
+          </div>
+
+          <div class="form-group">
+            <label>End Date (for period)</label>
+            <input type="date" id="processEndDate">
+          </div>
+
+          <div class="form-group">
+            <label>Skip Stages</label>
+            <div class="checkbox-group">
+              <label><input type="checkbox" value="categorize"> Categorize</label>
+              <label><input type="checkbox" value="analyze"> Analyze</label>
+              <label><input type="checkbox" value="refine"> Refine</label>
+              <label><input type="checkbox" value="manage"> Manage</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeProcessModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="executeProcess()">Process</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+      <div class="spinner"></div>
+      <p id="loadingMessage">Loading...</p>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
