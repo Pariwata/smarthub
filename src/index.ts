@@ -51,9 +51,10 @@ import dotenv from 'dotenv';
  */
 dotenv.config();
 
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth';
+import { HealthResponse, ErrorResponse } from './types';
 
 /**
  * Express application instance.
@@ -70,7 +71,7 @@ const app = express();
  * @constant {number}
  * @default 3000
  */
-const PORT = process.env.PORT || 3000;
+const PORT: number = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 /**
  * CORS Middleware Configuration.
@@ -131,7 +132,7 @@ app.use(express.json());
  *   "timestamp": "2024-01-15T10:30:00.000Z"
  * }
  */
-app.get('/health', (req, res) => {
+app.get('/health', (_req: Request, res: Response<HealthResponse>): void => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
@@ -160,7 +161,7 @@ app.use('/auth', authRoutes);
  * @returns {Object} 404 - Not found error
  * @returns {string} response.error - "Not found"
  */
-app.use((req, res) => {
+app.use((_req: Request, res: Response<ErrorResponse>): void => {
   res.status(404).json({ error: 'Not found' });
 });
 

@@ -23,8 +23,8 @@
  * console.log(payload.userId); // 'abc123'
  */
 
-import jwt from 'jsonwebtoken';
-import { JwtPayload } from '../types';
+import jwt, { SignOptions } from 'jsonwebtoken';
+import { JwtPayload, isJwtPayload } from '../types';
 
 /**
  * Secret key used to sign and verify JWT tokens.
@@ -67,7 +67,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
  * // Set in environment for 24-hour tokens
  * JWT_EXPIRES_IN=24h
  */
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? '7d';
 
 /**
  * Generates a signed JWT token for user authentication.
@@ -120,7 +120,10 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
  * @see {@link JwtPayload} - Type definition for payload structure
  */
 export function generateToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  const options: SignOptions = {
+    expiresIn: JWT_EXPIRES_IN as SignOptions['expiresIn'],
+  };
+  return jwt.sign(payload, JWT_SECRET, options);
 }
 
 /**
@@ -179,5 +182,11 @@ export function generateToken(payload: JwtPayload): string {
  * @see {@link JwtPayload} - Type definition for the return value
  */
 export function verifyToken(token: string): JwtPayload {
-  return jwt.verify(token, JWT_SECRET) as JwtPayload;
+  const decoded: unknown = jwt.verify(token, JWT_SECRET);
+
+  if (!isJwtPayload(decoded)) {
+    throw new Error('Invalid token payload structure');
+  }
+
+  return decoded;
 }

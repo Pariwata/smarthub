@@ -184,3 +184,68 @@ export interface AuthRequest extends Request {
   /** Authenticated user's JWT payload, populated by authenticate middleware */
   user?: JwtPayload;
 }
+
+/**
+ * Standard error response structure.
+ *
+ * @interface ErrorResponse
+ */
+export interface ErrorResponse {
+  /** Error message describing what went wrong */
+  error: string;
+  /** Optional validation error details (from Zod) */
+  details?: Array<{ path: PropertyKey[]; message: string }>;
+}
+
+/**
+ * Health check endpoint response.
+ *
+ * @interface HealthResponse
+ */
+export interface HealthResponse {
+  /** Server status - "ok" when server is running */
+  status: 'ok';
+  /** ISO 8601 timestamp of the response */
+  timestamp: string;
+}
+
+/**
+ * Successful authentication response (signup/signin).
+ *
+ * @interface AuthSuccessResponse
+ */
+export interface AuthSuccessResponse {
+  /** Success message */
+  message: string;
+  /** Public user profile */
+  user: UserPublic;
+  /** JWT authentication token */
+  token: string;
+}
+
+/**
+ * User profile response (GET /auth/me).
+ *
+ * @interface UserProfileResponse
+ */
+export interface UserProfileResponse {
+  /** Public user profile */
+  user: UserPublic;
+}
+
+/**
+ * Type guard to check if a value is a valid JwtPayload.
+ *
+ * @param value - The value to check
+ * @returns True if the value is a valid JwtPayload
+ */
+export function isJwtPayload(value: unknown): value is JwtPayload {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'userId' in value &&
+    'email' in value &&
+    typeof (value as JwtPayload).userId === 'string' &&
+    typeof (value as JwtPayload).email === 'string'
+  );
+}

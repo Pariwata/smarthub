@@ -28,9 +28,9 @@
  * app.use('/auth', authRoutes);
  */
 
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { AuthRequest } from '../types';
+import { AuthRequest, AuthSuccessResponse, ErrorResponse, UserProfileResponse } from '../types';
 import { authenticate } from '../middleware/auth';
 import { generateToken } from '../utils/jwt';
 import {
@@ -114,6 +114,16 @@ const signInSchema = z.object({
 });
 
 /**
+ * Type for signup request body after Zod validation.
+ */
+type SignUpBody = z.infer<typeof signUpSchema>;
+
+/**
+ * Type for signin request body after Zod validation.
+ */
+type SignInBody = z.infer<typeof signInSchema>;
+
+/**
  * POST /auth/signup - Create a new user account.
  *
  * Registers a new user with email, username, and password. Returns the
@@ -179,49 +189,55 @@ const signInSchema = z.object({
  *   "error": "Email already registered"
  * }
  */
-router.post('/signup', async (req, res: Response) => {
-  try {
-    // Step 1: Validate request body against schema
-    const validation = signUpSchema.safeParse(req.body);
-    if (!validation.success) {
-      res.status(400).json({
-        error: 'Validation failed',
-        details: validation.error.errors,
+router.post(
+  '/signup',
+  async (
+    req: Request<Record<string, never>, AuthSuccessResponse | ErrorResponse, SignUpBody>,
+    res: Response<AuthSuccessResponse | ErrorResponse>
+  ): Promise<void> => {
+    try {
+      // Step 1: Validate request body against schema
+      const validation = signUpSchema.safeParse(req.body);
+      if (!validation.success) {
+        res.status(400).json({
+          error: 'Validation failed',
+          details: validation.error.issues.map((e) => ({ path: e.path, message: e.message })),
+        });
+        return;
+      }
+
+      const { email, username, password } = validation.data;
+
+      // Step 2: Check if email already exists
+      if (findUserByEmail(email)) {
+        res.status(409).json({ error: 'Email already registered' });
+        return;
+      }
+
+      // Step 3: Check if username already exists
+      if (findUserByUsername(username)) {
+        res.status(409).json({ error: 'Username already taken' });
+        return;
+      }
+
+      // Step 4: Create user (password is hashed internally)
+      const user = await createUser(email, username, password);
+
+      // Step 5: Generate authentication token
+      const token = generateToken({ userId: user.id, email: user.email });
+
+      // Step 6: Return success response
+      res.status(201).json({
+        message: 'User created successfully',
+        user,
+        token,
       });
-      return;
+    } catch (error: unknown) {
+      console.error('Signup error:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-
-    const { email, username, password } = validation.data;
-
-    // Step 2: Check if email already exists
-    if (findUserByEmail(email)) {
-      res.status(409).json({ error: 'Email already registered' });
-      return;
-    }
-
-    // Step 3: Check if username already exists
-    if (findUserByUsername(username)) {
-      res.status(409).json({ error: 'Username already taken' });
-      return;
-    }
-
-    // Step 4: Create user (password is hashed internally)
-    const user = await createUser(email, username, password);
-
-    // Step 5: Generate authentication token
-    const token = generateToken({ userId: user.id, email: user.email });
-
-    // Step 6: Return success response
-    res.status(201).json({
-      message: 'User created successfully',
-      user,
-      token,
-    });
-  } catch (error) {
-    console.error('Signup error:', error);
-    res.status(500).json({ error: 'Internal server error' });
   }
-});
+);
 
 /**
  * POST /auth/signin - Authenticate user and get token.
@@ -283,42 +299,48 @@ router.post('/signup', async (req, res: Response) => {
  * - Generic error message prevents user enumeration
  * - Implement rate limiting to prevent brute-force attacks
  */
-router.post('/signin', async (req, res: Response) => {
-  try {
-    // Step 1: Validate request body
-    const validation = signInSchema.safeParse(req.body);
-    if (!validation.success) {
-      res.status(400).json({
-        error: 'Validation failed',
-        details: validation.error.errors,
+router.post(
+  '/signin',
+  async (
+    req: Request<Record<string, never>, AuthSuccessResponse | ErrorResponse, SignInBody>,
+    res: Response<AuthSuccessResponse | ErrorResponse>
+  ): Promise<void> => {
+    try {
+      // Step 1: Validate request body
+      const validation = signInSchema.safeParse(req.body);
+      if (!validation.success) {
+        res.status(400).json({
+          error: 'Validation failed',
+          details: validation.error.issues.map((e) => ({ path: e.path, message: e.message })),
+        });
+        return;
+      }
+
+      const { email, password } = validation.data;
+
+      // Step 2: Validate credentials
+      // Returns null for both wrong email and wrong password (security)
+      const user = await validateCredentials(email, password);
+      if (!user) {
+        res.status(401).json({ error: 'Invalid email or password' });
+        return;
+      }
+
+      // Step 3: Generate authentication token
+      const token = generateToken({ userId: user.id, email: user.email });
+
+      // Step 4: Return success response
+      res.json({
+        message: 'Signed in successfully',
+        user: toPublicUser(user),
+        token,
       });
-      return;
+    } catch (error: unknown) {
+      console.error('Signin error:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-
-    const { email, password } = validation.data;
-
-    // Step 2: Validate credentials
-    // Returns null for both wrong email and wrong password (security)
-    const user = await validateCredentials(email, password);
-    if (!user) {
-      res.status(401).json({ error: 'Invalid email or password' });
-      return;
-    }
-
-    // Step 3: Generate authentication token
-    const token = generateToken({ userId: user.id, email: user.email });
-
-    // Step 4: Return success response
-    res.json({
-      message: 'Signed in successfully',
-      user: toPublicUser(user),
-      token,
-    });
-  } catch (error) {
-    console.error('Signin error:', error);
-    res.status(500).json({ error: 'Internal server error' });
   }
-});
+);
 
 /**
  * GET /auth/me - Get authenticated user's profile.
@@ -371,29 +393,33 @@ router.post('/signin', async (req, res: Response) => {
  *   "error": "User not found"
  * }
  */
-router.get('/me', authenticate, (req: AuthRequest, res: Response) => {
-  try {
-    // Type guard: req.user is set by authenticate middleware
-    if (!req.user) {
-      res.status(401).json({ error: 'Not authenticated' });
-      return;
-    }
+router.get(
+  '/me',
+  authenticate,
+  (req: AuthRequest, res: Response<UserProfileResponse | ErrorResponse>): void => {
+    try {
+      // Type guard: req.user is set by authenticate middleware
+      if (!req.user) {
+        res.status(401).json({ error: 'Not authenticated' });
+        return;
+      }
 
-    // Fetch fresh user data from database
-    // (token may contain stale email if user updated it)
-    const user = findUserById(req.user.userId);
-    if (!user) {
-      res.status(404).json({ error: 'User not found' });
-      return;
-    }
+      // Fetch fresh user data from database
+      // (token may contain stale email if user updated it)
+      const user = findUserById(req.user.userId);
+      if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
 
-    // Return public user profile
-    res.json({ user: toPublicUser(user) });
-  } catch (error) {
-    console.error('Get profile error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+      // Return public user profile
+      res.json({ user: toPublicUser(user) });
+    } catch (error: unknown) {
+      console.error('Get profile error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   }
-});
+);
 
 /**
  * Default export: Authentication router.

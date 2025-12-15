@@ -23,7 +23,7 @@
  * insertStmt.run('uuid', 'email@example.com');
  */
 
-import Database from 'better-sqlite3';
+import Database, { Database as DatabaseType } from 'better-sqlite3';
 import path from 'path';
 
 /**
@@ -77,7 +77,7 @@ const dbPath = path.join(process.cwd(), 'smarthub.db');
  *   }
  * });
  */
-const db = new Database(dbPath);
+const db: DatabaseType = new Database(dbPath);
 
 /**
  * Database Configuration: Write-Ahead Logging (WAL) mode.
