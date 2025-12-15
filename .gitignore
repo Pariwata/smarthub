@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables (contains secrets!)
+.env
+
+# SQLite database files
+*.db
+*.sqlite
+
+# macOS files
+.DS_Store
+
+# IDE/Editor directories
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage reports
+coverage/
