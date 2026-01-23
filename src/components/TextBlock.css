@@ -1,0 +1,13 @@
+.text-block {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  height: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  word-wrap: break-word;
+  overflow: auto;
+}
+
+.text-block.selected {
+  box-shadow: 0 0 0 2px var(--primary-color), 0 4px 16px rgba(74, 144, 217, 0.3);
+}
