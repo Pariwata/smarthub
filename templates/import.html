@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <h1>Import CSV</h1>
+</section>
+
+<form method="post" action="{{ url_for('import_csv') }}" enctype="multipart/form-data" class="entry-form">
+  <p class="muted">
+    The CSV must include a <code>title</code> column. Optional columns:
+    <code>description</code>, <code>assignee</code>, <code>status</code>,
+    <code>priority</code>, <code>due_date</code> (YYYY-MM-DD).
+  </p>
+  <label>
+    CSV file
+    <input type="file" name="file" accept=".csv,text/csv" required>
+  </label>
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Import</button>
+    <a href="{{ url_for('export_csv') }}" class="btn btn-ghost">Download a template (current data)</a>
+  </div>
+</form>
+{% endblock %}
