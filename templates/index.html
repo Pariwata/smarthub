@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <h1>Work Register</h1>
+  <p class="muted">{{ entries|length }} item{{ '' if entries|length == 1 else 's' }} shown</p>
+</section>
+
+<form class="filters" method="get" action="{{ url_for('index') }}">
+  <input type="search" name="q" value="{{ filters.q }}" placeholder="Search title or description...">
+  <select name="status">
+    <option value="">All statuses</option>
+    {% for s in statuses %}
+      <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+  <select name="priority">
+    <option value="">All priorities</option>
+    {% for p in priorities %}
+      <option value="{{ p }}" {% if filters.priority == p %}selected{% endif %}>{{ p }}</option>
+    {% endfor %}
+  </select>
+  <select name="assignee">
+    <option value="">All assignees</option>
+    {% for a in assignees %}
+      <option value="{{ a }}" {% if filters.assignee == a %}selected{% endif %}>{{ a }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn">Apply</button>
+  <a href="{{ url_for('index') }}" class="btn btn-ghost">Reset</a>
+</form>
+
+{% if entries %}
+<table class="register">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Title</th>
+      <th>Assignee</th>
+      <th>Status</th>
+      <th>Priority</th>
+      <th>Due</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in entries %}
+    <tr>
+      <td class="muted">{{ e.id }}</td>
+      <td>
+        <strong>{{ e.title }}</strong>
+        {% if e.description %}<div class="muted small">{{ e.description }}</div>{% endif %}
+      </td>
+      <td>{{ e.assignee or '—' }}</td>
+      <td><span class="badge {{ e.status|status_class }}">{{ e.status }}</span></td>
+      <td><span class="badge {{ e.priority|priority_class }}">{{ e.priority }}</span></td>
+      <td class="{% if e|is_overdue %}overdue{% endif %}">
+        {{ e.due_date or '—' }}
+        {% if e|is_overdue %}<span class="overdue-tag">overdue</span>{% endif %}
+      </td>
+      <td class="actions">
+        <a href="{{ url_for('edit_entry', entry_id=e.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+        <form method="post" action="{{ url_for('delete_entry', entry_id=e.id) }}"
+              onsubmit="return confirm('Delete this work item?');" style="display:inline">
+          <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty">
+  <p>No work items match your filters.</p>
+  <a href="{{ url_for('new_entry') }}" class="btn btn-primary">Create your first item</a>
+</div>
+{% endif %}
+{% endblock %}

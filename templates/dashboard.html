@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <h1>Progress Dashboard</h1>
+</section>
+
+<div class="kpis">
+  <div class="kpi">
+    <div class="kpi-label">Total items</div>
+    <div class="kpi-value">{{ total }}</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Completion</div>
+    <div class="kpi-value">{{ completion }}%</div>
+    <div class="kpi-bar"><div class="kpi-bar-fill" style="width: {{ completion }}%"></div></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Done</div>
+    <div class="kpi-value">{{ status_counts['Done'] }}</div>
+  </div>
+  <div class="kpi {% if overdue %}kpi-warn{% endif %}">
+    <div class="kpi-label">Overdue</div>
+    <div class="kpi-value">{{ overdue }}</div>
+  </div>
+</div>
+
+<div class="chart-grid">
+  <div class="card">
+    <h2>By status</h2>
+    <canvas id="statusChart"></canvas>
+  </div>
+  <div class="card">
+    <h2>By priority</h2>
+    <canvas id="priorityChart"></canvas>
+  </div>
+  <div class="card card-wide">
+    <h2>Top assignees</h2>
+    <canvas id="assigneeChart"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  const statusCounts = {{ status_counts | tojson }};
+  const priorityCounts = {{ priority_counts | tojson }};
+  const assigneeData = {{ assignee_data | tojson }};
+
+  const statusColors = {
+    'Not started': '#94a3b8',
+    'In progress': '#3b82f6',
+    'Done': '#22c55e',
+    'Blocked': '#ef4444',
+  };
+  const priorityColors = {
+    'High': '#ef4444',
+    'Medium': '#f59e0b',
+    'Low': '#22c55e',
+  };
+
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(statusCounts),
+      datasets: [{
+        data: Object.values(statusCounts),
+        backgroundColor: Object.keys(statusCounts).map(k => statusColors[k] || '#888'),
+      }],
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+  });
+
+  new Chart(document.getElementById('priorityChart'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(priorityCounts),
+      datasets: [{
+        data: Object.values(priorityCounts),
+        backgroundColor: Object.keys(priorityCounts).map(k => priorityColors[k] || '#888'),
+      }],
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+  });
+
+  new Chart(document.getElementById('assigneeChart'), {
+    type: 'bar',
+    data: {
+      labels: assigneeData.map(a => a[0]),
+      datasets: [{
+        label: 'Items',
+        data: assigneeData.map(a => a[1]),
+        backgroundColor: '#3b82f6',
+      }],
+    },
+    options: {
+      responsive: true,
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
+  });
+</script>
+{% endblock %}

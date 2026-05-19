@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <h1>{{ heading }}</h1>
+</section>
+
+<form method="post" action="{{ action_url }}" class="entry-form">
+  <label>
+    Title <span class="req">*</span>
+    <input type="text" name="title" required value="{{ entry.title or '' }}">
+  </label>
+
+  <label>
+    Description
+    <textarea name="description" rows="4">{{ entry.description or '' }}</textarea>
+  </label>
+
+  <div class="grid-2">
+    <label>
+      Assignee
+      <input type="text" name="assignee" value="{{ entry.assignee or '' }}">
+    </label>
+    <label>
+      Due date
+      <input type="date" name="due_date" value="{{ entry.due_date or '' }}">
+    </label>
+    <label>
+      Status
+      <select name="status">
+        {% for s in statuses %}
+          <option value="{{ s }}" {% if entry.status == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Priority
+      <select name="priority">
+        {% for p in priorities %}
+          <option value="{{ p }}" {% if entry.priority == p %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a href="{{ url_for('index') }}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}
